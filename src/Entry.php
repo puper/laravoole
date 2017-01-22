@@ -16,5 +16,6 @@ $server->start(
     $configs['pid_file'],
     $configs['root_dir'],
     $configs['handler_config'],
-    $configs['wrapper_config']
+    $configs['wrapper_config'],
+    $configs['config']
 );

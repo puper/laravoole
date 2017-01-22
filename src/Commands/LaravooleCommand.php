@@ -140,6 +140,7 @@ class LaravooleCommand extends Command
             // for wrapper, like http / fastcgi / websocket
             'wrapper_config' => config('laravoole.wrapper_config'),
             'argv' => $argv,
+            'config' => config('laravoole'),
         ];
 
         $handle = popen('/usr/bin/env php ' . __DIR__ . '/../../src/Entry.php', 'w');

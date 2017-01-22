@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Facade;
 
 abstract class Base
 {
+    public $config;
 
     protected $root_dir;
 
@@ -52,16 +53,7 @@ abstract class Base
         $this->kernel = $this->app->make(\Illuminate\Contracts\Http\Kernel::class);
         // from \Illuminate\Contracts\Console\Kernel
         // do not using Http\Kernel here, because needs SetRequestForConsole
-        $this->app->bootstrapWith([
-            'Illuminate\Foundation\Bootstrap\DetectEnvironment',
-            'Illuminate\Foundation\Bootstrap\LoadConfiguration',
-            'Illuminate\Foundation\Bootstrap\ConfigureLogging',
-            'Illuminate\Foundation\Bootstrap\HandleExceptions',
-            'Illuminate\Foundation\Bootstrap\RegisterFacades',
-            'Illuminate\Foundation\Bootstrap\SetRequestForConsole',
-            'Illuminate\Foundation\Bootstrap\RegisterProviders',
-            'Illuminate\Foundation\Bootstrap\BootProviders',
-        ]);
+        $this->app->bootstrapWith($this->config['bootstrapWith']);
         chdir(public_path());
     }
 
@@ -202,20 +194,19 @@ abstract class Base
     protected function getApp()
     {
         $app = new Application($this->root_dir);
-
         $app->singleton(
             \Illuminate\Contracts\Http\Kernel::class,
-            \App\Http\Kernel::class
+            $this->config['classes']['httpKernel']
         );
 
         $app->singleton(
             \Illuminate\Contracts\Console\Kernel::class,
-            \App\Console\Kernel::class
+            $this->config['classes']['consoleKernel']
         );
 
         $app->singleton(
             \Illuminate\Contracts\Debug\ExceptionHandler::class,
-            \App\Exceptions\Handler::class
+            $this->config['classes']['exceptionHandler']
         );
 
         return $app;
