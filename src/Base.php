@@ -108,7 +108,6 @@ abstract class Base
             if (isset($illuminate_response)) {
                 $kernel->terminate($illuminate_request, $illuminate_response);
             }
-            /**
             if ($illuminate_request->hasSession()) {
                 $illuminate_request->getSession()->clear();
             }
@@ -117,7 +116,6 @@ abstract class Base
                 $this->app->register(\Illuminate\Auth\AuthServiceProvider::class, [], true);
                 Facade::clearResolvedInstance('auth');
             }
-*/
             return $response;
         }
 
