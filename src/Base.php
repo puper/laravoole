@@ -54,6 +54,7 @@ abstract class Base
         // from \Illuminate\Contracts\Console\Kernel
         // do not using Http\Kernel here, because needs SetRequestForConsole
         $this->app->bootstrapWith($this->config['bootstrapWith']);
+        config(['laravoole.active' => 1]);
         chdir(public_path());
     }
 
