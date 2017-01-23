@@ -65,6 +65,7 @@ abstract class Base
         $app = clone $this->origApp;
         $app->instance('app', $app);
         $app->instance('Illuminate\Container\Container', $app);
+        $app->setInstance($app);
         $kernel = $this->kernel;
         $reset = \Closure::bind(function ($app) {
             $this->app = $app;
@@ -84,17 +85,18 @@ abstract class Base
         }
 
         try {
+            ob_start();
             $kernel = $this->getOrigKernel();
-
             if (!$illuminate_request) {
                 $illuminate_request = $this->dealWithRequest($request);
-            }
-
-            $illuminate_response = $kernel->handle($illuminate_request);
+            }            $illuminate_response = $kernel->handle($illuminate_request);
             // Is gzip enabled and the client accept it?
             $accept_gzip = config('laravoole.base_config.gzip') && isset($request->header['Accept-Encoding']) && stripos($request->header['Accept-Encoding'], 'gzip') !== false;
-
-            $this->dealWithResponse($response, $illuminate_response, $accept_gzip);
+           $content = ob_get_clean();
+           if (strlen($content)) {
+               $illuminate_response->setContent($content.$illuminate_response->getContent());
+           }
+           $this->dealWithResponse($response, $illuminate_response, $accept_gzip);
 
         } catch (\Exception $e) {
             echo '[ERR] ' . $e->getFile() . '(' . $e->getLine() . '): ' . $e->getMessage() . PHP_EOL;
