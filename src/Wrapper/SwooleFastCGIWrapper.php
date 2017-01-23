@@ -27,7 +27,7 @@ class SwooleFastCGIWrapper extends Swoole implements ServerInterface
     
     public function onWorkerStart($serv, $worker_id)
     {
-        parent::onServerStart($serv, $worker_id);
+        parent::onWorkerStart($serv, $worker_id);
         config(['laravoole.base_config.deal_with_public' => false]);
     }
 
