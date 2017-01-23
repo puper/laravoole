@@ -24,6 +24,7 @@ abstract class Base
     protected $tmp_autoloader;
 
     protected $app;
+    protected $origApp;
 
     protected $server;
 
@@ -55,7 +56,21 @@ abstract class Base
         // do not using Http\Kernel here, because needs SetRequestForConsole
         $this->app->bootstrapWith($this->config['bootstrapWith']);
         config(['laravoole.active' => 1]);
+        $this->origApp = $this->app;
         chdir(public_path());
+    }
+    
+    public function getOrigKernel()
+    {
+        $app = clone $this->origApp;
+        $app->instance('app', $app);
+        $app->instance('Illuminate\Container\Container', $app);
+        $kernel = $this->kernel;
+        $reset = \Closure::bind(function ($app) {
+            $this->app = $app;
+        }, $kernel, get_class($kernel));
+        $reset($app);
+        return $kernel;
     }
 
     public function onRequest($request, $response, $illuminate_request = false)
@@ -69,7 +84,7 @@ abstract class Base
         }
 
         try {
-            $kernel = $this->kernel;
+            $kernel = $this->getOrigKernel();
 
             if (!$illuminate_request) {
                 $illuminate_request = $this->dealWithRequest($request);
@@ -91,6 +106,7 @@ abstract class Base
             if (isset($illuminate_response)) {
                 $kernel->terminate($illuminate_request, $illuminate_response);
             }
+            /**
             if ($illuminate_request->hasSession()) {
                 $illuminate_request->getSession()->clear();
             }
@@ -99,7 +115,7 @@ abstract class Base
                 $this->app->register(\Illuminate\Auth\AuthServiceProvider::class, [], true);
                 Facade::clearResolvedInstance('auth');
             }
-
+*/
             return $response;
         }
 
