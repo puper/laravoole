@@ -84,7 +84,7 @@ class Swoole extends Base implements ServerInterface
     {
         parent::prepareKernel();
         $server = $this->server;
-        $this->app->singleton('laravoole.server', function ($app) use ($server) {
+        $this->origApp->singleton('laravoole.server', function ($app) use ($server) {
             return $server;
         });
     }
