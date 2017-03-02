@@ -8,6 +8,7 @@ use Laravoole\Illuminate\Application;
 use Laravoole\Illuminate\Request as IlluminateRequest;
 
 use Illuminate\Support\Facades\Facade;
+use Illuminate\Contracts\Cookie\QueueingFactory as CookieJar;
 
 abstract class Base
 {
@@ -89,14 +90,20 @@ abstract class Base
             $kernel = $this->getOrigKernel();
             if (!$illuminate_request) {
                 $illuminate_request = $this->dealWithRequest($request);
-            }            $illuminate_response = $kernel->handle($illuminate_request);
+            }
+            
+            $this->app['events']->fire('laravoole.on_request', [$illuminate_request]);
+
+            $illuminate_response = $kernel->handle($illuminate_request);
+
+
             // Is gzip enabled and the client accept it?
             $accept_gzip = config('laravoole.base_config.gzip') && isset($request->header['Accept-Encoding']) && stripos($request->header['Accept-Encoding'], 'gzip') !== false;
-           $content = ob_get_clean();
-           if (strlen($content)) {
-               $illuminate_response->setContent($content.$illuminate_response->getContent());
-           }
-           $this->dealWithResponse($response, $illuminate_response, $accept_gzip);
+            $content = ob_get_clean();
+            if (strlen($content)) {
+                $illuminate_response->setContent($content.$illuminate_response->getContent());
+            }
+            $this->dealWithResponse($response, $illuminate_response, $accept_gzip);
 
         } catch (\Exception $e) {
             echo '[ERR] ' . $e->getFile() . '(' . $e->getLine() . '): ' . $e->getMessage() . PHP_EOL;
@@ -108,14 +115,9 @@ abstract class Base
             if (isset($illuminate_response)) {
                 $kernel->terminate($illuminate_request, $illuminate_response);
             }
-            if ($illuminate_request->hasSession()) {
-                $illuminate_request->getSession()->clear();
-            }
 
-            if ($this->app->isProviderLoaded(\Illuminate\Auth\AuthServiceProvider::class)) {
-                $this->app->register(\Illuminate\Auth\AuthServiceProvider::class, [], true);
-                Facade::clearResolvedInstance('auth');
-            }
+            $this->clean($illuminate_request);
+
             return $response;
         }
 
@@ -174,6 +176,26 @@ abstract class Base
         $this->endResponse($response, $content);
     }
 
+    protected function clean(IlluminateRequest $request)
+    {
+        if ($request->hasSession()) {
+            $request->getSession()->clear();
+        }
+
+        // Clean laravel cookie queue
+        $cookies = $this->app->make(CookieJar::class);
+        foreach ($cookies->getQueuedCookies() as $name => $cookie) {
+            $cookies->unqueue($name);
+        }
+
+        if ($this->app->isProviderLoaded(\Illuminate\Auth\AuthServiceProvider::class)) {
+            $this->app->register(\Illuminate\Auth\AuthServiceProvider::class, [], true);
+            Facade::clearResolvedInstance('auth');
+        }
+
+        //...
+    }
+
     public function endResponse($response, $content)
     {
         // send content & close
@@ -211,19 +233,22 @@ abstract class Base
     protected function getApp()
     {
         $app = new Application($this->root_dir);
+        $rootNamespace = $app->getNamespace();
+        $rootNamespace = trim($rootNamespace, '\\');
+
         $app->singleton(
             \Illuminate\Contracts\Http\Kernel::class,
-            $this->config['classes']['httpKernel']
+            "\\{$rootNamespace}\\Http\\Kernel"
         );
 
         $app->singleton(
             \Illuminate\Contracts\Console\Kernel::class,
-            $this->config['classes']['consoleKernel']
+            "\\{$rootNamespace}\\Console\\Kernel"
         );
 
         $app->singleton(
             \Illuminate\Contracts\Debug\ExceptionHandler::class,
-            $this->config['classes']['exceptionHandler']
+            "\\{$rootNamespace}\\Exceptions\\Handler"
         );
 
         return $app;
